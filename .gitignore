@@ -1,0 +1,22 @@
+# Rustビルド成果物（バイナリ・中間成果物）
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# 個人メモ・計画書（Git管理外）
+/docs/private/
+
+# AIアシスタント向け行動指針（ローカル専用）
+/AGENTS.md
+
+# macOS固有ファイル
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# エディタ・IDE設定（必要に応じて）
+.vscode/
+.idea/
+*.swp
+*.swo
