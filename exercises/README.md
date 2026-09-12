@@ -25,8 +25,9 @@
 新しいテーマを始める際は、**ルートディレクトリから** 以下のコマンドで作成します。
 
 ```bash
-# --vcs none を指定して個別の .git 作成を防ぎます
-cargo new --bin --vcs none exercises/01_basics
+# --vcs none: 個別の .git 作成を防止
+# --name <pkgname>: ディレクトリ名が数字で始まる場合（01_basics等）、パッケージ名は数字不可のため --name で指定
+cargo new --bin --vcs none --name basics exercises/01_basics
 ```
 
 ※作成後、ルートの `Cargo.toml` の `members = ["exercises/*"]` により、自動的にワークスペースへ認識されます。
