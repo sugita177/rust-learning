@@ -1,3 +1,29 @@
+fn my_func_str(some_string: String) {
+    println!("my_func_str内での引数: {}", some_string);
+    println!("my_func_str内での引数のメモリアドレス: {:p}", &some_string);
+    println!(
+        "ヒープ領域にあるsome_stringが指す領域のアドレス: {:p}",
+        some_string.as_ptr()
+    );
+}
+
+fn my_func_int(some_integer: i32) {
+    println!("my_func_int内での引数: {}", some_integer);
+}
+
+fn my_func_return_str(some_string: String) -> String {
+    println!("my_func_return_str内での引数: {}", some_string);
+    println!(
+        "my_func_return_str内での引数のメモリアドレス: {:p}",
+        &some_string
+    );
+    println!(
+        "ヒープ領域にあるsome_stringが指す領域のアドレス: {:p}",
+        some_string.as_ptr()
+    );
+    some_string
+}
+
 fn main() {
     // ==========================================
     // 1. 所有権の移動（ムーブセマンティクス）
@@ -41,4 +67,32 @@ fn main() {
     println!("y = {}, yのアドレス: {:p}", y, &y);
     //この時点でxには所有権があるため、println!マクロがxを参照できる
     println!("x = {}", x);
+
+    // ==========================================
+    // 4. 関数と所有権
+    // ==========================================
+    println!("\n--- 4. 関数と所有権 ---");
+    let s1 = String::from("hello");
+    my_func_str(s1);
+    // この時点でs1には所有権がないため、println!マクロがsを参照できず、コンパイルエラー
+    // println!("{}", s1);
+
+    let s2 = String::from("Good morning");
+    println!("main関数でのs2: {}", s2);
+    println!("s2自体のメモリアドレス: {:p}", &s2);
+    println!("ヒープ領域にあるs2が指す領域のアドレス: {:p}", s2.as_ptr());
+    let s2_returned = my_func_return_str(s2);
+    // この時点でs2は所有権をムーブしているため、println!マクロがs2を参照できず、コンパイルエラー
+    // println!("main関数でのs2: {}", s2);
+    println!("main関数でのs2_returned: {}", s2_returned);
+    println!("s2_returned自体のメモリアドレス: {:p}", &s2_returned);
+    println!(
+        "ヒープ領域にあるs2_returnedが指す領域のアドレス: {:p}",
+        s2_returned.as_ptr()
+    );
+
+    let x = 5;
+    my_func_int(x);
+    // この時点でxには所有権があるため、println!マクロがxを参照できる
+    println!("main関数でのx: {}", x);
 }
