@@ -1,3 +1,7 @@
+fn my_func_int(some_integer: i32) {
+    println!("my_func_int内での引数: {}", some_integer);
+}
+
 fn my_func_str(some_string: String) {
     println!("my_func_str内での引数: {}", some_string);
     println!("my_func_str内での引数のメモリアドレス: {:p}", &some_string);
@@ -5,10 +9,6 @@ fn my_func_str(some_string: String) {
         "ヒープ領域にあるsome_stringが指す領域のアドレス: {:p}",
         some_string.as_ptr()
     );
-}
-
-fn my_func_int(some_integer: i32) {
-    println!("my_func_int内での引数: {}", some_integer);
 }
 
 fn my_func_return_str(some_string: String) -> String {
@@ -22,6 +22,16 @@ fn my_func_return_str(some_string: String) -> String {
         some_string.as_ptr()
     );
     some_string
+}
+
+struct CustomDrop {
+    name: &'static str,
+}
+
+impl Drop for CustomDrop {
+    fn drop(&mut self) {
+        println!("[Drop] {} が解放されました", self.name);
+    }
 }
 
 fn main() {
@@ -95,4 +105,39 @@ fn main() {
     my_func_int(x);
     // この時点でxには所有権があるため、println!マクロがxを参照できる
     println!("main関数でのx: {}", x);
+
+    // ==========================================
+    // 5. 所有権のドロップ（Drop）
+    // ==========================================
+    println!("\n--- 5. 所有権のドロップ（Drop）とスコープ ---");
+    // 内部スコープでの解放
+    println!("--- 内部スコープでの解放");
+    {
+        println!("内部スコープに入りました");
+        let c_inner = CustomDrop { name: "c_inner" };
+        println!("c_inner.name = {}", c_inner.name);
+        println!("内部スコープから抜ける直前")
+    }
+    println!("内部スコープから抜けた直後");
+
+    // 所有権移動時の解放
+    println!("--- 所有権移動時の解放");
+    let c_before_move = CustomDrop {
+        name: "c_before_move",
+    };
+    println!("c_before_move.name = {}", c_before_move.name);
+    println!("c_before_moveの所有権をc_after_moveへ移動する直前");
+    let c_after_move = c_before_move;
+    println!("c_before_moveからc_after_moveへの所有権移動の完了");
+    println!("c_after_move.name = {}", c_after_move.name);
+
+    // 早期解放
+    println!("--- 早期解放");
+    let c_early_drop = CustomDrop {
+        name: "c_early_drop",
+    };
+    println!("c_early_drop.name = {}", c_early_drop.name);
+    println!("c_early_dropを早期解放");
+    drop(c_early_drop);
+    println!("c_early_dropの解放完了");
 }
