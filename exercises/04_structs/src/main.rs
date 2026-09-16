@@ -12,6 +12,35 @@ struct Color(i32, i32, i32);
 #[derive(Debug)]
 struct Point(i32, i32, i32);
 
+#[derive(Debug)]
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+
+    fn scale(&mut self, factor: u32) {
+        self.width *= factor;
+        self.height *= factor;
+    }
+
+    fn can_hold(&self, other: &Rectangle) -> bool {
+        self.width > other.width && self.height > other.height
+    }
+
+    // 関連関数（第1引数にselfを取らない、クラスメソッドに相当する関数）
+    fn square(size: u32) -> Self {
+        Self {
+            width: size,
+            height: size,
+        }
+    }
+}
+
 fn build_user(username: String, email: String) -> User {
     User {
         username,
@@ -88,4 +117,43 @@ fn main() {
     println!("point1 full = {:?}", point1);
     // Color型をPoint型として扱おうとすると、フィールドの型（i32）と個数は同じでも、型が異なるためコンパイルエラーになる。E0308
     // show_point(&color1);
+
+    // ========================================
+    // 3. メソッド構文とimplブロック
+    // ========================================
+    println!("\n---- 3. メソッド構文とimplブロック ----");
+    let rect1 = Rectangle {
+        width: 30,
+        height: 50,
+    };
+    let rect2 = Rectangle {
+        width: 10,
+        height: 40,
+    };
+    let sq = Rectangle::square(25);
+
+    println!("---- rect1 ----");
+    println!("area: {}", rect1.area());
+    println!("rect1 full = {:?}", rect1);
+
+    println!("---- rect2 ----");
+    println!("can_hold rect1: {}", rect2.can_hold(&rect1));
+    println!("rect2 full = {:?}", rect2);
+
+    println!("---- sq ----");
+    println!("area: {}", sq.area());
+    println!("sq full = {:?}", sq);
+
+    println!("---- can_hold ----");
+    println!("rect1 can hold rect2: {}", rect1.can_hold(&rect2));
+    println!("rect2 can_hold rect1: {}", rect2.can_hold(&rect1));
+    println!("rect1 can hold sq: {}", rect1.can_hold(&sq));
+    println!("sq can hold rect1: {}", sq.can_hold(&rect1));
+
+    // rect1はイミュータブルなので、変更するには再束縛（再定義）が必要（シャドーイング）
+    let mut rect1 = rect1;
+    rect1.scale(2);
+    println!("---- rect1 after scale ----");
+    println!("area: {}", rect1.area());
+    println!("rect1 full = {:?}", rect1);
 }
