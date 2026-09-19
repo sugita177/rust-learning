@@ -17,6 +17,9 @@
 | `06_error_handling/` | `error_handling` | `Option<T>`、`Result<T, E>`、`?` 演算子 |
 | `07_traits_generics/` | `traits_generics` | トレイト定義・実装、ジェネリクス型、トレイト境界 |
 | `08_lifetimes/` | `lifetimes` | 参照の有効期間、ライフタイム注釈（`'a`） |
+| `09_modules_visibility/` | `modules_visibility` | モジュールツリー、ファイル分割（`mod`）、可視性（`pub`, `pub(crate)`） |
+| `10_testing/` | `testing` | 単体テスト（`#[test]`）、統合テスト（`tests/`）、アサーション、異常系テスト（※ライブラリクレート） |
+| `11_iterators_closures/` | `iterators_closures` | クロージャ、環境キャプチャ（`move`）、イテレータアダプタ（`map`, `filter`, `collect`） |
 
 ---
 
