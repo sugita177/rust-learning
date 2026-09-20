@@ -22,7 +22,7 @@ cargo check -p mini_parser
 ## 開発ステップ
 
 - [x] **01. 木構造とAST定義 (`mini-parser/01-tree-structure`)**
-- [ ] **02. 字句解析器（Lexer） (`mini-parser/02-lexer`)**
+- [x] **02. 字句解析器（Lexer） (`mini-parser/02-lexer`)**
 - [ ] **03. 構文解析器（Parser） (`mini-parser/03-parser`)**
 - [ ] **04. 構文木走査（Visitor） (`mini-parser/04-visitor`)**
 
@@ -108,3 +108,75 @@ cargo check -p mini_parser
   ```
 - **実証できたこと**:
   - ヒープメモリ上に木構造（`(1 + 2) * 3` 等）を安全に構築でき、パターンマッチによる再帰走査で正しく計算（評価）できることを確認。
+
+---
+
+## 02. 字句解析器（Lexer）の記録
+
+### 2.1 基本概念
+- **字句解析（Lexical Analysis / Tokenization）**:
+  - ソースコードの生の文字列を走査し、空白などの不要な情報を捨てながら、文法的な最小構成要素である「トークン（`Token`）」の列に変換する処理。
+  - 後続の構文解析器（Parser）の入力となる。
+- **`chars().peekable()` によるイテレータの先読み走査**:
+  - `input.chars()`: 文字列を 1 文字（`char`）単位でイテレート（スペースや改行もそのまま取得）。
+  - `.peekable()`: イテレータのカーソルを進めずに「次の文字を覗き見（peek）」する能力を追加。
+  - **`peek()` と `next()` の協調**:
+    - `peek()` で次の文字が数字や空白かを確認。
+    - 条件に合致していれば `next()` で文字を消費して進める。
+    - 複数桁の数値（例: `"123"`）を、非数字が来るまで先読みしながら安全に 1 つの `Token::Number(123)` に集約可能。
+
+### 2.2 学び・検証記録
+
+#### [実装] トークン定義と字句解析関数
+- **トークンとエラーの定義**:
+  ```rust
+  #[derive(Debug, PartialEq, Eq, Clone)]
+  pub enum Token {
+      Number(i64),
+      Plus, Minus, Asterisk, Slash,
+      LParen, RParen,
+  }
+
+  #[derive(Debug, PartialEq, Eq)]
+  pub enum LexError {
+      UnexpectedChar(char),
+  }
+  ```
+
+#### [正常系・異常系実証] 単体テストによる検証
+- **検証コード**:
+  ```rust
+  #[test]
+  fn test_tokenize_valid_input() {
+      let input = " 1 + ( 23 * 456 ) / 7 - 89 ";
+      let tokens = tokenize(input).unwrap();
+      assert_eq!(
+          tokens,
+          vec![
+              Token::Number(1), Token::Plus, Token::LParen, Token::Number(23),
+              Token::Asterisk, Token::Number(456), Token::RParen,
+              Token::Slash, Token::Number(7), Token::Minus, Token::Number(89),
+          ]
+      );
+  }
+
+  #[test]
+  fn test_tokenize_invalid_char() {
+      let input = "10 + @ - 5";
+      assert_eq!(tokenize(input), Err(LexError::UnexpectedChar('@')));
+  }
+  ```
+- **テスト実行結果**:
+  ```text
+  running 5 tests
+  test ast::tests::test_eval_add_and_multiply ... ok
+  test ast::tests::test_eval_nested_tree ... ok
+  test ast::tests::test_eval_simple_number ... ok
+  test lexer::tests::test_tokenize_valid_input ... ok
+  test lexer::tests::test_tokenize_invalid_char ... ok
+
+  test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  ```
+- **実証できたこと**:
+  - 不規則な空白が綺麗に除去され、四則演算記号、括弧、複数桁の数値が正しくトークン化された。
+  - 未知の不正な文字（`@`）が `LexError::UnexpectedChar` として安全に検出されることを確認。
