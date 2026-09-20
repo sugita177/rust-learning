@@ -13,12 +13,10 @@ Rustの言語仕様やコア概念（所有権・借用・ライフタイム・�
 .
 ├── Cargo.toml          # ワークスペース親設定
 ├── README.md           # 本ファイル
-├── docs/               # 開発環境等のドキュメント
-│   └── rust_macos_setup_guide.md
-└── exercises/          # 各学習テーマのコード
-    ├── 01_basics/      # 基本文法・変数・制御構文
-    ├── 02_ownership/   # 所有権・ムーブ・借用
-    └── ...
+├── docs/               # 開発環境・学習計画等のドキュメント
+├── exercises/          # Phase 1: 各学習テーマごとの基礎演習パッケージ群 (01〜11)
+└── projects/           # Phase 2: 本格的なミニ実践プロジェクト群
+    └── mini_parser/    # 数式パーサ＆AST走査エンジン（Lexer / Parser / AST / Visitor）
 ```
 
 ---
