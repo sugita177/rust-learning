@@ -5,11 +5,10 @@ pub enum Expr {
     Number(i64),
 
     // Box<Expr> でヒープポインタ化してサイズを固定
-    // 木の分岐: 足し算（左辺の式 + 右辺の式）
     Add(Box<Expr>, Box<Expr>),
-
-    // 木の分岐: 掛け算（左辺の式 * 右辺の式）
+    Subtract(Box<Expr>, Box<Expr>),
     Multiply(Box<Expr>, Box<Expr>),
+    Divide(Box<Expr>, Box<Expr>),
 }
 
 impl Expr {
@@ -17,7 +16,9 @@ impl Expr {
         match self {
             Expr::Number(n) => *n,
             Expr::Add(left, right) => left.eval() + right.eval(),
+            Expr::Subtract(left, right) => left.eval() - right.eval(),
             Expr::Multiply(left, right) => left.eval() * right.eval(),
+            Expr::Divide(left, right) => left.eval() / right.eval(),
         }
     }
 }

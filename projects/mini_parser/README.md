@@ -23,7 +23,7 @@ cargo check -p mini_parser
 
 - [x] **01. 木構造とAST定義 (`mini-parser/01-tree-structure`)**
 - [x] **02. 字句解析器（Lexer） (`mini-parser/02-lexer`)**
-- [ ] **03. 構文解析器（Parser） (`mini-parser/03-parser`)**
+- [x] **03. 構文解析器（Parser） (`mini-parser/03-parser`)**
 - [ ] **04. 構文木走査（Visitor） (`mini-parser/04-visitor`)**
 
 ---
@@ -180,3 +180,49 @@ cargo check -p mini_parser
 - **実証できたこと**:
   - 不規則な空白が綺麗に除去され、四則演算記号、括弧、複数桁の数値が正しくトークン化された。
   - 未知の不正な文字（`@`）が `LexError::UnexpectedChar` として安全に検出されることを確認。
+
+---
+
+## 03. 構文解析器（Parser）の記録
+
+### 3.1 基本概念
+- **再帰下降構文解析（Recursive Descent Parsing）**:
+  - 文法規則（EBNF）をそのまま相互再帰する関数群として実装する、直感的かつ強力な構文解析アルゴリズム。
+  - 演算子の優先順位を関数の呼び出し階層で自然に解決する。
+    - **`parse_expr`**: 最も優先度の低い足し算・引き算（`+`, `-`）
+    - **`parse_term`**: 次に優先度の高い掛け算・割り算（`*`, `/`）
+    - **`parse_factor`**: 最優先の単一値（数値 `Number`、単項マイナス、括弧式 `( expr )`）
+- **左結合（Left Associativity）の実現**:
+  - `while let Some(token) = self.tokens.peek()` ループにより、左から順に木を包み直す（`1 + 2 + 3` → `Add(Add(1, 2), 3)`）。
+- **括弧の再帰的処理**:
+  - `parse_factor` が `(` を検出した瞬間に、最上位の `parse_expr()` を再帰呼び出しすることで、括弧内の式が完全に 1 つの AST に集約されてから外側へ戻る。
+- **単項マイナス（Unary Minus）の局所化**:
+  - `parse_factor` に `Token::Minus => 0 - factor` のルールを 1 箇所追加するだけで、式の先頭・演算子右辺・多重マイナス（`--5`）まで全て自動対応。
+
+### 3.2 学び・検証記録
+
+#### [テスト設計と責務の分離]
+- **AST 構造の直接検証**:
+  - パーサのテストにおいて、計算結果（`eval()`）に依存せず `ast == Expr::Add(...)` と AST の木構造そのものを `assert_eq!` で比較することで、計算ロジックと構文解析ロジックのテスト責務を完全に分離。
+- **純粋な単体テスト（Pure Unit Test）と DX の両立**:
+  - `parse_str("1 + 2 * 3")` のような文字列ヘルパー（可読性・量産性重視）に加え、`Vec<Token>` を直接渡す `test_operator_precedence_pure` を実装し、Lexer に一切依存しないパーサ単体の独立性を証明。
+
+#### [テスト実行結果]
+- **テスト実行結果**:
+  ```text
+  running 10 tests
+  test ast::tests::test_eval_add_and_multiply ... ok
+  test ast::tests::test_eval_nested_tree ... ok
+  test ast::tests::test_eval_simple_number ... ok
+  test lexer::tests::test_tokenize_invalid_char ... ok
+  test lexer::tests::test_tokenize_valid_input ... ok
+  test parser::tests::test_missing_closing_paren_error ... ok
+  test parser::tests::test_operator_precedence ... ok
+  test parser::tests::test_operator_precedence_pure ... ok
+  test parser::tests::test_parentheses_precedence ... ok
+  test parser::tests::test_unary_minus ... ok
+
+  test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  ```
+- **実証できたこと**:
+  - 四則演算の優先順位（掛け算優先）、括弧の優先順位、単項マイナス、閉じ括弧なし構文エラーの全パターンが正確に動作することを実証。
