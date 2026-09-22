@@ -24,7 +24,7 @@ cargo check -p mini_parser
 - [x] **01. 木構造とAST定義 (`mini-parser/01-tree-structure`)**
 - [x] **02. 字句解析器（Lexer） (`mini-parser/02-lexer`)**
 - [x] **03. 構文解析器（Parser） (`mini-parser/03-parser`)**
-- [ ] **04. 構文木走査（Visitor） (`mini-parser/04-visitor`)**
+- [x] **04. 構文木走査（Visitor） (`mini-parser/04-visitor`)**
 
 ---
 
@@ -226,3 +226,77 @@ cargo check -p mini_parser
   ```
 - **実証できたこと**:
   - 四則演算の優先順位（掛け算優先）、括弧の優先順位、単項マイナス、閉じ括弧なし構文エラーの全パターンが正確に動作することを実証。
+
+---
+
+## 04. 構文木走査（Visitor パターン）の記録
+
+### 4.1 基本概念
+- **Visitor パターンによる責務分離**:
+  - ASTノード（データ構造）と、Linter や Formatter（走査・検査・出力アルゴリズム）の責務を完全に切り離すデザインパターン。
+  - 新しい静的解析ルール（Lint規則）を追加する際も、AST本体のコードを変更することなく、独立した構造体と `Visitor` トレイトの実装を追加するだけで拡張可能（開閉原則）。
+- **`walk_expr` と探索の自動化**:
+  - 木構造の左右の子ノードを再帰的に辿る定型処理を共通ヘルパー関数 `walk_expr` に集約。
+  - 各 Visitor は `visit_expr` で「自身が興味のある特定のノード（割り算 `Expr::Divide` など）」のみをフック（オーバーライド）し、最後に `walk_expr` を呼ぶだけで木全体を自動探索。
+- **Rust の型システムと参照外し**:
+  - `?Sized`: 参照（ポインタ）経由で扱うことで、コンパイル時にスタックサイズが不明な型（トレイトオブジェクト等）も柔軟に受け入れ可能。
+  - `**right`: `&Expr` からマッチした `&Box<Expr>` の「借用参照 `&`」と「ヒープポインタ `Box`」の 2 枚の皮を順次剥ぎ取り（Deref）、実体である `Expr` を直接判定。
+- **トレイトのスコープ規則**:
+  - トレイトで定義されたメソッド（`visit_expr` 等）を呼び出すには、呼び出し側のスコープに `use crate::visitor::Visitor;` とトレイト自身を明示的にインポートする必要がある。
+
+### 4.2 学び・検証記録
+
+#### [実装] Visitor トレイトと具体的アナライザー
+- **`ZeroDivisionLinter`**:
+  - 式を実行（評価）することなく、構文木を走査して `Expr::Divide(_, right)` の右辺が `0`（`Expr::Number(0)`）である箇所を静的に検出して警告を発出（静的解析 / Lint）。
+- **`NodeCounter`**:
+  - 構文木全体を巡回し、訪問した全ノード数を正確に集計。
+
+#### [正常系・異常系実証] 単体テストによる検証
+- **検証コード**:
+  ```rust
+  #[test]
+  fn test_zero_division_linter_detects_bug() {
+      let buggy_ast = Expr::Divide(Box::new(Expr::Number(10)), Box::new(Expr::Number(0)));
+      let mut linter = ZeroDivisionLinter::new();
+      linter.visit_expr(&buggy_ast);
+      assert_eq!(linter.diagnostics.len(), 1);
+      assert!(linter.diagnostics[0].contains("0除算"));
+  }
+
+  #[test]
+  fn test_node_counter_with_paren() {
+      // (1 + 2) * 3 => Multiply(Add(1, 2), 3)
+      // 括弧は木構造の階層そのものとして表現されるため、独立ノードとしては消滅（計5個）
+      let ast = Expr::Multiply(
+          Box::new(Expr::Add(Box::new(Expr::Number(1)), Box::new(Expr::Number(2)))),
+          Box::new(Expr::Number(3)),
+      );
+      let mut counter = NodeCounter::new();
+      counter.visit_expr(&ast);
+      assert_eq!(counter.count, 5);
+  }
+  ```
+- **テスト実行結果**:
+  ```text
+  running 14 tests
+  test ast::tests::test_eval_add_and_multiply ... ok
+  test ast::tests::test_eval_nested_tree ... ok
+  test ast::tests::test_eval_simple_number ... ok
+  test lexer::tests::test_tokenize_invalid_char ... ok
+  test lexer::tests::test_tokenize_valid_input ... ok
+  test parser::tests::test_missing_closing_paren_error ... ok
+  test parser::tests::test_operator_precedence ... ok
+  test parser::tests::test_operator_precedence_pure ... ok
+  test parser::tests::test_parentheses_precedence ... ok
+  test parser::tests::test_unary_minus ... ok
+  test visitor::tests::test_node_counter ... ok
+  test visitor::tests::test_node_counter_with_paren ... ok
+  test visitor::tests::test_zero_division_linter_detects_bug ... ok
+  test visitor::tests::test_zero_division_linter_passes_valid_code ... ok
+
+  test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  ```
+- **実証できたこと**:
+  - 静的解析（Linter）が実行時エラー（パニック）を起こす前に潜在バグを検出できることを確認。
+  - AST（抽象構文木）において括弧等の構文記号が階層構造として吸収され、無駄なノードが存在しないことをノード数カウントで実証。
